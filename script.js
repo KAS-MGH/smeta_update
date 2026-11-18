@@ -198,6 +198,26 @@
 
   addBtn.addEventListener('click', function () { addRow(true); });
 
+  // Подготовка печатной версии: заголовок и комментарий
+  function preparePrint() {
+    var num = $('number').value.trim();
+    var parts = (dateEl.value || '').split('-');
+    var date = parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : '';
+    $('print-title').textContent =
+      'Смета' + (num ? ' № ' + num : '') + (date ? ' от ' + date : '');
+
+    var comment = $('comment').value.trim();
+    $('print-comment').textContent = comment;
+    $('comment-card').setAttribute('data-empty', comment ? 'false' : 'true');
+  }
+
+  $('save-pdf').addEventListener('click', function () {
+    preparePrint();
+    window.print();
+  });
+  // Если печать запущена через Ctrl+P
+  window.addEventListener('beforeprint', preparePrint);
+
   dateEl.value = todayISO();
   addRow(false);
 })();

@@ -147,6 +147,24 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   white-space: nowrap;
 }
 
+/* Комментарий и PDF */
+textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 8px 12px;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.actions { margin: 16px 0; }
+.btn-primary { background: var(--accent); color: #fff; width: 100%; font-size: 18px; }
+.btn-primary:hover { background: var(--accent-dark); }
+
+.print-title, .print-comment, .signature { display: none; }
+
 /* Телефон: строки становятся карточками */
 @media (max-width: 640px) {
   .details, .calc { grid-template-columns: 1fr; }
@@ -177,4 +195,76 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   .btn-remove::after { content: " Удалить"; }
   .btn-secondary { width: 100%; }
   .total-value { font-size: 30px; }
+}
+
+/* Печать: документ А4 */
+@page { size: A4; margin: 15mm; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body { background: #fff; color: #000; font-size: 12pt; }
+  .page { max-width: none; padding: 0; }
+
+  .hint, .header h1:not(.print-title), .no-print, .actions, .btn,
+  .btn-remove, .items th:last-child, .items td:last-child,
+  .comment-card textarea, .comment-card label, #add {
+    display: none !important;
+  }
+  .print-title { display: block; font-size: 22pt; margin: 0 0 12pt; }
+
+  .card {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 12pt;
+    break-inside: avoid;
+  }
+  h2 { font-size: 13pt; margin-bottom: 6pt; }
+
+  /* Поля ввода — просто значения */
+  input, select {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    min-height: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    color: #000;
+  }
+  input::-webkit-calendar-picker-indicator { display: none; }
+  .field label { color: #555; font-weight: normal; font-size: 10pt; }
+  .field { gap: 2pt; }
+  .details { gap: 8pt 16pt; }
+
+  /* Таблица с рамками */
+  .items { border: 1px solid #000; }
+  .items th, .items td {
+    border: 1px solid #000;
+    padding: 4pt 6pt;
+    color: #000;
+    width: auto !important;
+  }
+  .items th { background: #eee; font-size: 11pt; }
+  .items tr { break-inside: avoid; }
+  .cell-label { display: none !important; }
+
+  /* Итоги справа */
+  .total {
+    background: none;
+    color: #000;
+    width: 55%;
+    margin: 0 0 12pt auto;
+    padding: 0;
+    break-inside: avoid;
+  }
+  .line { font-size: 12pt; }
+  .line-total { border-top: 1px solid #000; }
+  .total-label { font-size: 13pt; font-weight: bold; }
+  .total-value { font-size: 16pt; }
+
+  /* Комментарий и подпись */
+  .comment-card[data-empty="true"] { display: none; }
+  .print-comment { display: block; white-space: pre-wrap; }
+  .signature { display: block; margin-top: 36pt; }
 }

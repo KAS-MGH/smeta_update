@@ -11,6 +11,7 @@
     <header class="header">
       <h1>Смета за 5 минут</h1>
       <p class="hint">Заполните реквизиты и позиции — сумма считается сама.</p>
+      <h1 class="print-title" id="print-title">Смета</h1>
     </header>
 
     <section class="card" aria-labelledby="details-title">
@@ -53,7 +54,7 @@
       <button type="button" id="add" class="btn btn-secondary">+ Добавить позицию</button>
     </section>
 
-    <section class="card" aria-labelledby="calc-title">
+    <section class="card no-print" aria-labelledby="calc-title">
       <h2 id="calc-title">Скидка, НДС и валюта</h2>
       <div class="calc">
         <div class="field">
@@ -98,6 +99,19 @@
         <strong class="total-value" id="total">0 ₸</strong>
       </div>
     </section>
+
+    <section class="card comment-card" id="comment-card" aria-labelledby="comment-title">
+      <h2 id="comment-title">Комментарий</h2>
+      <label for="comment" class="visually-hidden">Комментарий: сроки, условия оплаты</label>
+      <textarea id="comment" rows="3" placeholder="Сроки, условия оплаты"></textarea>
+      <div class="print-comment" id="print-comment"></div>
+    </section>
+
+    <div class="actions">
+      <button type="button" id="save-pdf" class="btn btn-primary">Сохранить PDF</button>
+    </div>
+
+    <p class="signature">Подпись ____________________</p>
   </main>
 
   <script src="script.js"></script>

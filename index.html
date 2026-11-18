@@ -46,24 +46,12 @@
             <th scope="col">Единица</th>
             <th scope="col">Цена, <span class="cur">₸</span></th>
             <th scope="col">Сумма</th>
-            <th scope="col"><span class="visually-hidden">Библиотека</span></th>
             <th scope="col"><span class="visually-hidden">Удалить</span></th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
       <button type="button" id="add" class="btn btn-secondary">+ Добавить позицию</button>
-
-      <div class="quick" role="group" aria-labelledby="quick-title">
-        <h3 id="quick-title">Быстрый ввод</h3>
-        <div class="quick-buttons" id="quick-buttons">
-          <button type="button" class="btn btn-chip" data-name="Консультация" data-unit="час">Консультация</button>
-          <button type="button" class="btn btn-chip" data-name="Доставка" data-unit="услуга">Доставка</button>
-          <button type="button" class="btn btn-chip" data-name="Монтаж" data-unit="услуга">Монтаж</button>
-          <button type="button" class="btn btn-chip" data-name="Час работы" data-unit="час">Час работы</button>
-        </div>
-        <p class="copy-status" id="lib-status" role="status" hidden></p>
-      </div>
     </section>
 
     <section class="card no-print" aria-labelledby="calc-title">
@@ -131,28 +119,6 @@
     </div>
 
     <p class="signature">Подпись ____________________</p>
-
-    <section class="tools" aria-label="Библиотека и шаблоны">
-      <details class="card tool" id="lib-details">
-        <summary>Моя библиотека <span id="lib-count"></span></summary>
-        <p class="muted" id="lib-empty">Пока пусто. Нажмите «Добавить в библиотеку» у заполненной позиции.</p>
-        <ul class="list" id="lib-list"></ul>
-      </details>
-
-      <details class="card tool" id="tpl-details">
-        <summary>Мои шаблоны смет <span id="tpl-count"></span></summary>
-        <div class="tpl-save">
-          <div class="field">
-            <label for="tpl-name">Название шаблона</label>
-            <input id="tpl-name" type="text" placeholder="Например: Монтаж под ключ">
-          </div>
-          <button type="button" id="save-tpl" class="btn btn-secondary">Сохранить как шаблон</button>
-        </div>
-        <p class="copy-status" id="tpl-status" role="status" hidden></p>
-        <p class="muted" id="tpl-empty">Шаблонов пока нет. Шаблон хранит реквизиты (без даты и номера), позиции, скидку, НДС, валюту и комментарий.</p>
-        <ul class="list" id="tpl-list"></ul>
-      </details>
-    </section>
   </main>
 
   <script src="script.js"></script>

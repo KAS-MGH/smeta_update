@@ -92,12 +92,6 @@
     priceLabel.appendChild(cur);
     tr.appendChild(priceCell);
     tr.appendChild(cell('Сумма', sum, 'cell-sum'));
-    var lib = document.createElement('button');
-    lib.type = 'button';
-    lib.className = 'btn btn-secondary btn-lib';
-    lib.textContent = 'Добавить в библиотеку';
-    lib.hidden = true; // появляется, когда есть название
-    tr.appendChild(cell('', lib, 'cell-lib'));
     tr.appendChild(cell('', del, 'cell-remove'));
     return tr;
   }
@@ -137,7 +131,6 @@
   function recalc() {
     Array.prototype.forEach.call(rowsEl.children, function (tr) {
       tr.querySelector('.row-sum').textContent = formatMoney(rowSum(tr));
-      tr.querySelector('.btn-lib').hidden = !tr.querySelector('.in-name').value.trim();
     });
 
     var c = compute();
@@ -166,7 +159,6 @@
       el.textContent = currency;
     });
     recalc();
-    renderLibrary();
   }
 
   // Подписи для скринридеров с номером позиции
@@ -178,7 +170,6 @@
       tr.querySelector('.in-unit').setAttribute('aria-label', 'Единица' + n);
       tr.querySelector('.in-price').setAttribute('aria-label', 'Цена' + n);
       tr.querySelector('.btn-remove').setAttribute('aria-label', 'Удалить позицию ' + (i + 1));
-      tr.querySelector('.btn-lib').setAttribute('aria-label', 'Добавить в библиотеку позицию ' + (i + 1));
     });
   }
 
@@ -188,7 +179,6 @@
     relabel();
     recalc();
     if (focus) tr.querySelector('.in-name').focus();
-    return tr;
   }
 
   function removeRow(tr) {
@@ -215,12 +205,7 @@
 
   rowsEl.addEventListener('click', function (e) {
     var btn = e.target.closest('.btn-remove');
-    if (btn) {
-      removeRow(btn.closest('tr'));
-      return;
-    }
-    var libBtn = e.target.closest('.btn-lib');
-    if (libBtn) addToLibrary(libBtn.closest('tr'));
+    if (btn) removeRow(btn.closest('tr'));
   });
 
   // Enter в последней строке добавляет новую позицию.
@@ -301,8 +286,8 @@
     });
   }
 
-  function restoreDraft(data, ids) {
-    (ids || FIELD_IDS).forEach(function (id) {
+  function restoreDraft(data) {
+    FIELD_IDS.forEach(function (id) {
       if (typeof data[id] === 'string') $(id).value = data[id];
     });
     setCurrency(data.currency);
@@ -424,227 +409,6 @@
   });
   dateEl.addEventListener('change', saveDraft);
 
-  // ---------- Библиотека позиций и шаблоны ----------
-  var LIB_KEY = 'smeta-library-v1';   // отдельно от черновика сметы
-  var TPL_KEY = 'smeta-templates-v1';
-  var TPL_FIELDS = ['from', 'to', 'discount', 'vat', 'comment']; // без номера и даты
-
-  function readList(key) {
-    try {
-      var a = JSON.parse(localStorage.getItem(key));
-      return Array.isArray(a) ? a.filter(function (x) {
-        return x && typeof x === 'object';
-      }) : [];
-    } catch (err) {
-      return [];
-    }
-  }
-
-  function writeList(key, list) {
-    try {
-      localStorage.setItem(key, JSON.stringify(list));
-    } catch (err) { /* без хранилища список живёт до закрытия страницы */ }
-  }
-
-  var library = readList(LIB_KEY).filter(function (x) { return typeof x.name === 'string'; });
-  var templates = readList(TPL_KEY).filter(function (x) { return typeof x.title === 'string'; });
-
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-
-  function mk(tag, cls, text) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text != null) e.textContent = text;
-    return e;
-  }
-
-  function flash(el, text) {
-    el.textContent = text;
-    el.hidden = false;
-    clearTimeout(el._timer);
-    el._timer = setTimeout(function () { el.hidden = true; }, 2000);
-  }
-
-  function isEmptyRow(tr) {
-    return !tr.querySelector('.in-name').value.trim() &&
-           !tr.querySelector('.in-price').value.trim();
-  }
-
-  // Есть ли в смете то, что можно потерять
-  function hasData() {
-    var texts = ['from', 'to', 'comment'].some(function (id) {
-      return $(id).value.trim() !== '';
-    });
-    var rows = Array.prototype.some.call(rowsEl.children, function (tr) {
-      return !isEmptyRow(tr);
-    });
-    return texts || rows || toNumber($('discount').value) > 0 || toNumber($('vat').value) > 0;
-  }
-
-  // Новая строка: название, единица, цена; количество 1, курсор в количестве
-  function addItemToEstimate(name, unit, price) {
-    var last = rowsEl.lastElementChild;
-    var tr = (last && isEmptyRow(last)) ? last : addRow(false);
-    tr.querySelector('.in-name').value = name;
-    tr.querySelector('.in-unit').value = UNITS.indexOf(unit) !== -1 ? unit : UNITS[0];
-    tr.querySelector('.in-price').value = price > 0 ? plural(price) : '';
-    tr.querySelector('.in-qty').value = '1';
-    recalc();
-    var qty = tr.querySelector('.in-qty');
-    qty.focus();
-    qty.select();
-  }
-
-  function unitLabel(item) {
-    return (item.price > 0 ? formatMoney(item.price) : 'цена не указана') + ' / ' + item.unit;
-  }
-
-  function renderLibrary() {
-    var list = $('lib-list');
-    list.innerHTML = '';
-    $('lib-empty').hidden = library.length > 0;
-    $('lib-count').textContent = library.length ? '(' + library.length + ')' : '';
-    library.forEach(function (item) {
-      var li = mk('li', 'list-item');
-      var info = mk('div', 'item-info');
-      info.appendChild(mk('strong', '', item.name));
-      info.appendChild(mk('span', '', unitLabel(item)));
-      var btns = mk('div', 'item-buttons');
-      var add = mk('button', 'btn btn-secondary', 'Добавить в смету');
-      add.type = 'button';
-      add.setAttribute('aria-label', 'Добавить в смету: ' + item.name);
-      add.addEventListener('click', function () {
-        addItemToEstimate(item.name, item.unit, item.price);
-      });
-      var del = mk('button', 'btn btn-secondary', 'Удалить');
-      del.type = 'button';
-      del.setAttribute('aria-label', 'Удалить из библиотеки: ' + item.name);
-      del.addEventListener('click', function () {
-        library = library.filter(function (x) { return x !== item; });
-        writeList(LIB_KEY, library);
-        renderLibrary();
-      });
-      btns.appendChild(add);
-      btns.appendChild(del);
-      li.appendChild(info);
-      li.appendChild(btns);
-      list.appendChild(li);
-    });
-  }
-
-  function addToLibrary(tr) {
-    var name = tr.querySelector('.in-name').value.trim();
-    if (!name) return;
-    var unit = tr.querySelector('.in-unit').value;
-    var price = toNumber(tr.querySelector('.in-price').value);
-    var exists = library.some(function (x) {
-      return x.name === name && x.unit === unit && x.price === price;
-    });
-    if (exists) {
-      flash($('lib-status'), 'Эта позиция уже есть в библиотеке');
-      return;
-    }
-    library.push({ id: uid(), name: name, unit: unit, price: price });
-    writeList(LIB_KEY, library);
-    renderLibrary();
-    flash($('lib-status'), 'Добавлено в библиотеку ✓');
-  }
-
-  function collectRows() {
-    var rows = [];
-    Array.prototype.forEach.call(rowsEl.children, function (tr) {
-      if (isEmptyRow(tr)) return;
-      rows.push({
-        name: tr.querySelector('.in-name').value,
-        qty: tr.querySelector('.in-qty').value,
-        unit: tr.querySelector('.in-unit').value,
-        price: tr.querySelector('.in-price').value
-      });
-    });
-    return rows;
-  }
-
-  function renderTemplates() {
-    var list = $('tpl-list');
-    list.innerHTML = '';
-    $('tpl-empty').hidden = templates.length > 0;
-    $('tpl-count').textContent = templates.length ? '(' + templates.length + ')' : '';
-    templates.forEach(function (t) {
-      var li = mk('li', 'list-item');
-      var info = mk('div', 'item-info');
-      var n = Array.isArray(t.rows) ? t.rows.length : 0;
-      info.appendChild(mk('strong', '', t.title));
-      info.appendChild(mk('span', '', 'Позиций: ' + n));
-      var btns = mk('div', 'item-buttons');
-      var load = mk('button', 'btn btn-secondary', 'Загрузить');
-      load.type = 'button';
-      load.setAttribute('aria-label', 'Загрузить шаблон: ' + t.title);
-      load.addEventListener('click', function () { loadTemplate(t); });
-      var del = mk('button', 'btn btn-secondary', 'Удалить');
-      del.type = 'button';
-      del.setAttribute('aria-label', 'Удалить шаблон: ' + t.title);
-      del.addEventListener('click', function () {
-        templates = templates.filter(function (x) { return x !== t; });
-        writeList(TPL_KEY, templates);
-        renderTemplates();
-      });
-      btns.appendChild(load);
-      btns.appendChild(del);
-      li.appendChild(info);
-      li.appendChild(btns);
-      list.appendChild(li);
-    });
-  }
-
-  function saveTemplate() {
-    var title = $('tpl-name').value.trim() || 'Шаблон ' + (templates.length + 1);
-    templates.push({
-      id: uid(),
-      title: title,
-      from: $('from').value,
-      to: $('to').value,
-      discount: $('discount').value,
-      vat: $('vat').value,
-      comment: $('comment').value,
-      currency: currency,
-      rows: collectRows()
-    });
-    writeList(TPL_KEY, templates);
-    $('tpl-name').value = '';
-    renderTemplates();
-    flash($('tpl-status'), 'Шаблон сохранён ✓');
-  }
-
-  function loadTemplate(t) {
-    if (hasData() && !window.confirm(
-      'Загрузить шаблон «' + t.title + '»? Текущие данные сметы будут заменены (номер и дата останутся).')) {
-      return;
-    }
-    loading = true;
-    restoreDraft(t, TPL_FIELDS);
-    loading = false;
-    recalc();
-    renderLibrary();
-    flash($('tpl-status'), 'Шаблон загружен ✓');
-  }
-
-  $('quick-buttons').addEventListener('click', function (e) {
-    var b = e.target.closest('.btn-chip');
-    if (b) addItemToEstimate(b.getAttribute('data-name'), b.getAttribute('data-unit'), 0);
-  });
-  $('save-tpl').addEventListener('click', saveTemplate);
-  $('tpl-name').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      saveTemplate();
-    }
-  });
-
-  // На телефоне списки свёрнуты (аккордеон), на широком экране открыты
-  var wide = window.innerWidth > 640;
-  $('lib-details').open = wide;
-  $('tpl-details').open = wide;
-
   // ---------- Запуск ----------
   var saved = loadDraft();
   if (saved && typeof saved === 'object') {
@@ -655,6 +419,4 @@
   }
   loading = false;
   recalc();
-  renderLibrary();
-  renderTemplates();
 })();

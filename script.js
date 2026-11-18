@@ -18,12 +18,12 @@
     return n;
   }
 
-  // 15000 -> "15 000 ₸"
+  var currency = '₸';
+
+  // 15000 -> "15 000 ₸" (округляем до целых)
   function formatMoney(value) {
-    var n = isFinite(value) ? Math.round(value * 100) / 100 : 0;
-    var parts = n.toFixed(2).replace(/\.?0+$/, '').split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    return parts.join('.') + ' ₸';
+    var n = isFinite(value) ? Math.round(value) : 0;
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ' + currency;
   }
 
   function todayISO() {
@@ -83,7 +83,14 @@
     tr.appendChild(cell('Наименование', name));
     tr.appendChild(cell('Количество', qty));
     tr.appendChild(cell('Единица', unit));
-    tr.appendChild(cell('Цена, ₸', price));
+    var priceCell = cell('', price);
+    var priceLabel = priceCell.querySelector('.cell-label');
+    priceLabel.appendChild(document.createTextNode('Цена, '));
+    var cur = document.createElement('span');
+    cur.className = 'cur';
+    cur.textContent = currency;
+    priceLabel.appendChild(cur);
+    tr.appendChild(priceCell);
     tr.appendChild(cell('Сумма', sum, 'cell-sum'));
     tr.appendChild(cell('', del, 'cell-remove'));
     return tr;
@@ -94,14 +101,42 @@
            toNumber(tr.querySelector('.in-price').value);
   }
 
+  function $(id) { return document.getElementById(id); }
+
   function recalc() {
-    var total = 0;
+    var subtotal = 0;
     Array.prototype.forEach.call(rowsEl.children, function (tr) {
       var s = rowSum(tr);
       tr.querySelector('.row-sum').textContent = formatMoney(s);
-      total += s;
+      subtotal += s;
     });
+    subtotal = Math.round(subtotal);
+
+    var discountPct = Math.min(toNumber($('discount').value), 100);
+    var vatPct = toNumber($('vat').value);
+
+    var discount = Math.round(subtotal * discountPct / 100);
+    var afterDiscount = subtotal - discount;
+    var vat = Math.round(afterDiscount * vatPct / 100);
+    var total = afterDiscount + vat;
+
+    $('subtotal').textContent = formatMoney(subtotal);
+    $('discount-amount').textContent = '−' + formatMoney(discount);
+    $('after-discount').textContent = formatMoney(afterDiscount);
+    $('vat-amount').textContent = formatMoney(vat);
     totalEl.textContent = formatMoney(total);
+
+    $('line-discount').hidden = discount === 0;
+    $('line-after').hidden = discount === 0;
+    $('line-vat').hidden = vat === 0;
+  }
+
+  function changeCurrency() {
+    currency = $('currency').value;
+    Array.prototype.forEach.call(document.querySelectorAll('.cur'), function (el) {
+      el.textContent = currency;
+    });
+    recalc();
   }
 
   // Подписи для скринридеров с номером позиции
@@ -142,6 +177,9 @@
   }
 
   rowsEl.addEventListener('input', recalc);
+  $('discount').addEventListener('input', recalc);
+  $('vat').addEventListener('input', recalc);
+  $('currency').addEventListener('change', changeCurrency);
 
   rowsEl.addEventListener('click', function (e) {
     var btn = e.target.closest('.btn-remove');

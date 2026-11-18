@@ -107,16 +107,34 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .btn-remove:hover { background: #fdecea; }
 
 /* Итого */
+[hidden] { display: none !important; }
+
+.calc {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
 .total {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.line {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
   flex-wrap: wrap;
-  background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius);
-  padding: 20px;
+  padding: 4px 0;
+  font-size: 18px;
+  white-space: nowrap;
+}
+.line-total {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
 }
 .total-label { font-size: 20px; }
 .total-value { font-size: 36px; white-space: nowrap; }
@@ -131,7 +149,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 
 /* Телефон: строки становятся карточками */
 @media (max-width: 640px) {
-  .details { grid-template-columns: 1fr; }
+  .details, .calc { grid-template-columns: 1fr; }
   .items thead { display: none; }
   .items, .items tbody, .items tr, .items td { display: block; width: 100%; }
   .items tr {

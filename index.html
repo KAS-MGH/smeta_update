@@ -43,7 +43,7 @@
             <th scope="col">Наименование</th>
             <th scope="col">Количество</th>
             <th scope="col">Единица</th>
-            <th scope="col">Цена, ₸</th>
+            <th scope="col">Цена, <span class="cur">₸</span></th>
             <th scope="col">Сумма</th>
             <th scope="col"><span class="visually-hidden">Удалить</span></th>
           </tr>
@@ -53,9 +53,50 @@
       <button type="button" id="add" class="btn btn-secondary">+ Добавить позицию</button>
     </section>
 
+    <section class="card" aria-labelledby="calc-title">
+      <h2 id="calc-title">Скидка, НДС и валюта</h2>
+      <div class="calc">
+        <div class="field">
+          <label for="discount">Скидка, %</label>
+          <input id="discount" type="text" inputmode="decimal" value="0">
+        </div>
+        <div class="field">
+          <label for="vat">НДС, %</label>
+          <input id="vat" type="text" inputmode="decimal" value="0">
+        </div>
+        <div class="field">
+          <label for="currency">Валюта</label>
+          <select id="currency">
+            <option value="₸">₸ (тенге)</option>
+            <option value="₽">₽ (рубль)</option>
+            <option value="$">$ (доллар)</option>
+            <option value="€">€ (евро)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
     <section class="total" aria-live="polite">
-      <span class="total-label">Итого к оплате</span>
-      <strong class="total-value" id="total">0 ₸</strong>
+      <div class="line">
+        <span>Сумма</span>
+        <span id="subtotal">0 ₸</span>
+      </div>
+      <div class="line" id="line-discount" hidden>
+        <span>Скидка</span>
+        <span id="discount-amount">0 ₸</span>
+      </div>
+      <div class="line" id="line-after" hidden>
+        <span>Сумма со скидкой</span>
+        <span id="after-discount">0 ₸</span>
+      </div>
+      <div class="line" id="line-vat" hidden>
+        <span>НДС</span>
+        <span id="vat-amount">0 ₸</span>
+      </div>
+      <div class="line line-total">
+        <span class="total-label">Итого к оплате</span>
+        <strong class="total-value" id="total">0 ₸</strong>
+      </div>
     </section>
   </main>
 

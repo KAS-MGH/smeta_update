@@ -103,12 +103,11 @@
 
   function $(id) { return document.getElementById(id); }
 
-  function recalc() {
+  // Все суммы документа (без вывода на экран)
+  function compute() {
     var subtotal = 0;
     Array.prototype.forEach.call(rowsEl.children, function (tr) {
-      var s = rowSum(tr);
-      tr.querySelector('.row-sum').textContent = formatMoney(s);
-      subtotal += s;
+      subtotal += rowSum(tr);
     });
     subtotal = Math.round(subtotal);
 
@@ -118,7 +117,28 @@
     var discount = Math.round(subtotal * discountPct / 100);
     var afterDiscount = subtotal - discount;
     var vat = Math.round(afterDiscount * vatPct / 100);
-    var total = afterDiscount + vat;
+    return {
+      subtotal: subtotal,
+      discountPct: discountPct,
+      discount: discount,
+      afterDiscount: afterDiscount,
+      vatPct: vatPct,
+      vat: vat,
+      total: afterDiscount + vat
+    };
+  }
+
+  function recalc() {
+    Array.prototype.forEach.call(rowsEl.children, function (tr) {
+      tr.querySelector('.row-sum').textContent = formatMoney(rowSum(tr));
+    });
+
+    var c = compute();
+    var subtotal = c.subtotal;
+    var discount = c.discount;
+    var afterDiscount = c.afterDiscount;
+    var vat = c.vat;
+    var total = c.total;
 
     $('subtotal').textContent = formatMoney(subtotal);
     $('discount-amount').textContent = '−' + formatMoney(discount);
@@ -129,6 +149,8 @@
     $('line-discount').hidden = discount === 0;
     $('line-after').hidden = discount === 0;
     $('line-vat').hidden = vat === 0;
+
+    saveDraft();
   }
 
   function changeCurrency() {
@@ -198,13 +220,16 @@
 
   addBtn.addEventListener('click', function () { addRow(true); });
 
-  // Подготовка печатной версии: заголовок и комментарий
-  function preparePrint() {
+  function titleText() {
     var num = $('number').value.trim();
     var parts = (dateEl.value || '').split('-');
     var date = parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : '';
-    $('print-title').textContent =
-      'Смета' + (num ? ' № ' + num : '') + (date ? ' от ' + date : '');
+    return 'Смета' + (num ? ' № ' + num : '') + (date ? ' от ' + date : '');
+  }
+
+  // Подготовка печатной версии: заголовок и комментарий
+  function preparePrint() {
+    $('print-title').textContent = titleText();
 
     var comment = $('comment').value.trim();
     $('print-comment').textContent = comment;
@@ -218,6 +243,180 @@
   // Если печать запущена через Ctrl+P
   window.addEventListener('beforeprint', preparePrint);
 
-  dateEl.value = todayISO();
-  addRow(false);
+  // ---------- Черновик в localStorage ----------
+  var STORAGE_KEY = 'smeta-draft-v1';
+  var loading = true; // пока восстанавливаем, ничего не сохраняем
+  var FIELD_IDS = ['from', 'to', 'number', 'date', 'discount', 'vat', 'comment'];
+
+  function saveDraft() {
+    if (loading) return;
+    try {
+      var data = { currency: currency, rows: [] };
+      FIELD_IDS.forEach(function (id) { data[id] = $(id).value; });
+      Array.prototype.forEach.call(rowsEl.children, function (tr) {
+        data.rows.push({
+          name: tr.querySelector('.in-name').value,
+          qty: tr.querySelector('.in-qty').value,
+          unit: tr.querySelector('.in-unit').value,
+          price: tr.querySelector('.in-price').value
+        });
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (err) { /* хранилище недоступно — работаем без него */ }
+  }
+
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function setCurrency(value) {
+    var select = $('currency');
+    var known = Array.prototype.some.call(select.options, function (o) {
+      return o.value === value;
+    });
+    select.value = known ? value : '₸';
+    currency = select.value;
+    Array.prototype.forEach.call(document.querySelectorAll('.cur'), function (el) {
+      el.textContent = currency;
+    });
+  }
+
+  function restoreDraft(data) {
+    FIELD_IDS.forEach(function (id) {
+      if (typeof data[id] === 'string') $(id).value = data[id];
+    });
+    setCurrency(data.currency);
+    rowsEl.innerHTML = '';
+    var rows = Array.isArray(data.rows) ? data.rows : [];
+    rows.forEach(function (r) {
+      addRow(false);
+      var tr = rowsEl.lastElementChild;
+      tr.querySelector('.in-name').value = String(r.name == null ? '' : r.name);
+      tr.querySelector('.in-qty').value = String(r.qty == null ? '' : r.qty);
+      tr.querySelector('.in-price').value = String(r.price == null ? '' : r.price);
+      if (UNITS.indexOf(r.unit) !== -1) tr.querySelector('.in-unit').value = r.unit;
+    });
+    if (rowsEl.children.length === 0) addRow(false);
+  }
+
+  // ---------- Новая смета ----------
+  function nextNumber(text) {
+    var m = String(text).trim().match(/^(.*?)(\d+)$/);
+    if (!m) return '1';
+    var next = String(Number(m[2]) + 1);
+    while (next.length < m[2].length) next = '0' + next; // 009 -> 010
+    return m[1] + next;
+  }
+
+  function newEstimate() {
+    if (!window.confirm('Начать новую смету? Текущие данные будут очищены.')) return;
+    loading = true;
+    var num = nextNumber($('number').value);
+    FIELD_IDS.forEach(function (id) { $(id).value = ''; });
+    $('number').value = num;
+    dateEl.value = todayISO();
+    $('discount').value = '0';
+    $('vat').value = '0';
+    rowsEl.innerHTML = '';
+    hideFallback();
+    loading = false;
+    addRow(false);
+    $('from').focus();
+  }
+
+  // ---------- Копирование для WhatsApp ----------
+  function plural(n) { // число без лишних нулей, запятая как разделитель
+    return String(Math.round(n * 1000) / 1000).replace('.', ',');
+  }
+
+  function buildMessage() {
+    var lines = [titleText()];
+    var from = $('from').value.trim();
+    var to = $('to').value.trim();
+    if (from) lines.push('От: ' + from);
+    if (to) lines.push('Для: ' + to);
+    lines.push('');
+
+    Array.prototype.forEach.call(rowsEl.children, function (tr) {
+      var name = tr.querySelector('.in-name').value.trim();
+      var qty = toNumber(tr.querySelector('.in-qty').value);
+      var price = toNumber(tr.querySelector('.in-price').value);
+      var unit = tr.querySelector('.in-unit').value;
+      var sum = qty * price;
+      if (!name && sum === 0) return; // пустую строку не отправляем
+      lines.push('• ' + (name || 'Без названия') + ' — ' + plural(qty) + ' ' + unit +
+        ' × ' + formatMoney(price) + ' = ' + formatMoney(sum));
+    });
+
+    var c = compute();
+    lines.push('');
+    if (c.discount > 0 || c.vat > 0) lines.push('Сумма: ' + formatMoney(c.subtotal));
+    if (c.discount > 0) {
+      lines.push('Скидка (' + plural(c.discountPct) + '%): −' + formatMoney(c.discount));
+      lines.push('Сумма со скидкой: ' + formatMoney(c.afterDiscount));
+    }
+    if (c.vat > 0) lines.push('НДС (' + plural(c.vatPct) + '%): ' + formatMoney(c.vat));
+    lines.push('Итого к оплате: ' + formatMoney(c.total));
+
+    var comment = $('comment').value.trim();
+    if (comment) lines.push('', comment);
+    return lines.join('\n');
+  }
+
+  var statusTimer = null;
+  function showStatus() {
+    var el = $('copy-status');
+    el.hidden = false;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () { el.hidden = true; }, 2000);
+  }
+
+  function hideFallback() {
+    $('fallback').hidden = true;
+  }
+
+  function showFallback(text) {
+    var box = $('fallback-text');
+    $('fallback').hidden = false;
+    box.value = text;
+    box.focus();
+    box.select();
+  }
+
+  function copyMessage() {
+    var text = buildMessage();
+    hideFallback();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showStatus, function () {
+        showFallback(text);
+      });
+    } else {
+      showFallback(text);
+    }
+  }
+
+  $('new-estimate').addEventListener('click', newEstimate);
+  $('copy-wa').addEventListener('click', copyMessage);
+
+  // Любое изменение полей вне таблицы тоже сохраняется
+  ['from', 'to', 'number', 'date', 'comment'].forEach(function (id) {
+    $(id).addEventListener('input', saveDraft);
+  });
+  dateEl.addEventListener('change', saveDraft);
+
+  // ---------- Запуск ----------
+  var saved = loadDraft();
+  if (saved && typeof saved === 'object') {
+    restoreDraft(saved);
+  } else {
+    dateEl.value = todayISO();
+    addRow(false);
+  }
+  loading = false;
+  recalc();
 })();

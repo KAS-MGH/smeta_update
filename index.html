@@ -109,6 +109,13 @@
 
     <div class="actions">
       <button type="button" id="save-pdf" class="btn btn-primary">Сохранить PDF</button>
+      <button type="button" id="copy-wa" class="btn btn-secondary">Скопировать для WhatsApp</button>
+      <button type="button" id="new-estimate" class="btn btn-secondary">Новая смета</button>
+    </div>
+    <p class="copy-status" id="copy-status" role="status" hidden>Скопировано ✓</p>
+    <div class="card fallback" id="fallback" hidden>
+      <label for="fallback-text">Не удалось скопировать автоматически. Выделите текст и скопируйте вручную (Ctrl+C):</label>
+      <textarea id="fallback-text" rows="8" readonly></textarea>
     </div>
 
     <p class="signature">Подпись ____________________</p>

@@ -159,8 +159,11 @@ textarea {
 }
 textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-.actions { margin: 16px 0; }
-.btn-primary { background: var(--accent); color: #fff; width: 100%; font-size: 18px; }
+.actions { margin: 16px 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.actions .btn { flex: 1 1 200px; }
+.btn-primary { background: var(--accent); color: #fff; font-size: 18px; }
+.copy-status { margin: 0 0 12px; color: #1e7a3c; font-weight: 600; }
+.fallback label { display: block; margin-bottom: 8px; }
 .btn-primary:hover { background: var(--accent-dark); }
 
 .print-title, .print-comment, .signature { display: none; }
@@ -208,7 +211,8 @@ textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; 
 
   .hint, .header h1:not(.print-title), .no-print, .actions, .btn,
   .btn-remove, .items th:last-child, .items td:last-child,
-  .comment-card textarea, .comment-card label, #add {
+  .comment-card textarea, .comment-card label, #add,
+  .copy-status, .fallback {
     display: none !important;
   }
   .print-title { display: block; font-size: 22pt; margin: 0 0 12pt; }
